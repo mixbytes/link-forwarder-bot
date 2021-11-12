@@ -2,7 +2,8 @@ import os
 from telethon.sync import TelegramClient, events, types
 import logging
 
-logging.basicConfig(format='[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s',
+logging.basicConfig(filename="./logs.txt", filemode='a',
+                    format='[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s',
                     level=logging.WARNING)
 
 API_ID = os.environ["TG_API_ID"]
