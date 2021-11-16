@@ -1,7 +1,7 @@
 import os
 from telethon.sync import TelegramClient, events, types, functions
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import asyncio
 from pathlib import Path
 
@@ -18,10 +18,12 @@ INTERVAL_IN_SEC = 30
 MESSAGE_MIN_LIVE_IN_SEC = 120
 LAST_MESSAGE_ID = 0
 GET_MESSAGE_CNT_LIMIT = 300
+CLIENT_UPDATE_INTERVAL_IN_SEC = 10800
 
 client = None
 forward_chat = None
 last_msg_file = Path("./lastmsg.txt")
+last_client_update_time = datetime.now(timezone.utc)
 
 # forward message if contains url
 async def forward_message(message):
@@ -61,6 +63,15 @@ async def forward_new_messages():
         LAST_MESSAGE_ID = messages[0].id
     save_last_messsage_id()
 
+# update client and start because it somehow stops working
+async def update_client():
+    global client, last_client_update_time
+    if last_from_date_in_secs(last_client_update_time) < CLIENT_UPDATE_INTERVAL_IN_SEC:
+        return
+    client = TelegramClient(SESSION, API_ID, API_HASH)
+    await client.start()
+    last_client_update_time = datetime.now(timezone.utc)
+
 async def main():
     global forward_chat, client, last_msg_file
     get_last_message_id()
@@ -71,8 +82,9 @@ async def main():
     while True:
         await asyncio.gather(
             asyncio.sleep(INTERVAL_IN_SEC),
-            forward_new_messages()
-        )    
+            forward_new_messages(),
+            update_client()
+        )
 
 if __name__ == '__main__':
     asyncio.run(main())
