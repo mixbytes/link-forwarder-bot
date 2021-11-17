@@ -14,16 +14,14 @@ API_HASH = os.environ["TG_API_HASH"]
 PARSE_CHAT_ID = int(os.environ["TG_PARSE_CHAT_ID"])
 FORWARD_CHAT_ID = int(os.environ["TG_FORWARD_CHAT_ID"])
 SESSION = "SOPHIEPALEOLOG"
-INTERVAL_IN_SEC = 30
+INTERVAL_IN_SEC = 10
 MESSAGE_MIN_LIVE_IN_SEC = 120
 LAST_MESSAGE_ID = 0
 GET_MESSAGE_CNT_LIMIT = 300
-CLIENT_UPDATE_INTERVAL_IN_SEC = 10800
 
 client = None
 forward_chat = None
 last_msg_file = Path("./lastmsg.txt")
-last_client_update_time = datetime.now(timezone.utc)
 
 # forward message if contains url
 async def forward_message(message):
@@ -53,7 +51,9 @@ def get_last_message_id():
 
 # check for new messages and if it lasts > MESSAGE_MIN_LIVE_IN_SEC and id > LAST_MESSAGE_ID
 async def forward_new_messages():
-    global LAST_MESSAGE_ID
+    global LAST_MESSAGE_ID, client
+    client = TelegramClient(SESSION, API_ID, API_HASH)
+    await client.start()
     messages = [m async for m in client.iter_messages(PARSE_CHAT_ID, limit=GET_MESSAGE_CNT_LIMIT)
     if m.id > LAST_MESSAGE_ID and last_from_date_in_secs(m.date) > MESSAGE_MIN_LIVE_IN_SEC]
     for message in reversed(messages):
@@ -63,14 +63,16 @@ async def forward_new_messages():
         LAST_MESSAGE_ID = messages[0].id
     save_last_messsage_id()
 
-# update client and start because it somehow stops working
-async def update_client():
-    global last_client_update_time
-    if last_from_date_in_secs(last_client_update_time) < CLIENT_UPDATE_INTERVAL_IN_SEC:
-        return
-    if client.is_connected():
-        await client.start()
-    last_client_update_time = datetime.now(timezone.utc)
+    await client.disconnect()
+
+# # update client and start because it somehow stops working
+# async def update_client():
+#     global last_client_update_time
+#     if last_from_date_in_secs(last_client_update_time) < CLIENT_UPDATE_INTERVAL_IN_SEC:
+#         return
+#     if client.is_connected():
+#         await client.start()
+#     last_client_update_time = datetime.now(timezone.utc)
 
 async def main():
     global forward_chat, client, last_msg_file
@@ -78,12 +80,12 @@ async def main():
     client = TelegramClient(SESSION, API_ID, API_HASH)
     await client.start()
     forward_chat = await client.get_entity(FORWARD_CHAT_ID)
+    await client.disconnect()
 
     while True:
         await asyncio.gather(
             asyncio.sleep(INTERVAL_IN_SEC),
-            forward_new_messages(),
-            update_client()
+            forward_new_messages()
         )
 
 if __name__ == '__main__':
