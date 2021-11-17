@@ -65,12 +65,11 @@ async def forward_new_messages():
 
 # update client and start because it somehow stops working
 async def update_client():
-    global client, last_client_update_time
+    global last_client_update_time
     if last_from_date_in_secs(last_client_update_time) < CLIENT_UPDATE_INTERVAL_IN_SEC:
         return
-    await client.disconnect()
-    client = TelegramClient(SESSION, API_ID, API_HASH)
-    await client.start()
+    if client.is_connected():
+        await client.start()
     last_client_update_time = datetime.now(timezone.utc)
 
 async def main():
