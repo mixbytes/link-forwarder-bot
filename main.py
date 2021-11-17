@@ -68,6 +68,7 @@ async def update_client():
     global client, last_client_update_time
     if last_from_date_in_secs(last_client_update_time) < CLIENT_UPDATE_INTERVAL_IN_SEC:
         return
+    await client.disconnect()
     client = TelegramClient(SESSION, API_ID, API_HASH)
     await client.start()
     last_client_update_time = datetime.now(timezone.utc)
